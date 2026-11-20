@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Übungsseiten – Übersicht</title>
+<style>
+:root{--navy:#16325c;--blue:#1f6fd1;--ink:#1d2433;--muted:#5b6474;--line:#dfe4ec;--bg:#f4f6fa;--red:#c0392b;--gold:#f5b301;--green:#1f7a3a}
+*{box-sizing:border-box}
+body{margin:0;font-family:"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink);font-size:17px;line-height:1.45}
+header{background:var(--navy);color:#fff;padding:18px 16px 14px}
+header .in,main{max-width:1000px;margin:0 auto}
+header h1{margin:0;font-size:1.6rem}
+header p{margin:4px 0 0;opacity:.85}
+main{padding:14px}
+.warn{background:#fff4f4;border:2px solid var(--red);border-radius:12px;padding:12px 14px;margin:0 0 16px}
+.warn b.t{color:var(--red);font-size:1.08rem}
+.en{color:var(--muted);font-style:italic;font-size:.9em}
+.bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:6px 0 12px}
+.bar input[type=search]{flex:1 1 220px;font-size:1rem;padding:9px 12px;border:2px solid var(--line);border-radius:10px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 14px}
+.chip{border:2px solid var(--line);background:#fff;border-radius:20px;padding:5px 13px;font-weight:600;cursor:pointer;font-size:.95rem}
+.chip.on{background:var(--blue);border-color:var(--blue);color:#fff}
+.btn{border:0;border-radius:10px;padding:9px 14px;font-weight:700;cursor:pointer;background:#fff;color:var(--navy);border:2px solid var(--line);font-size:.95rem}
+h2{font-size:1.2rem;margin:20px 0 8px;color:var(--navy)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:12px}
+a.card{display:flex;flex-direction:column;gap:6px;text-decoration:none;color:inherit;background:#fff;border:2px solid var(--line);border-radius:14px;padding:14px 16px;transition:transform .12s,border-color .12s,box-shadow .12s}
+a.card:hover,a.card:focus{border-color:var(--blue);transform:translateY(-2px);box-shadow:0 6px 18px rgba(22,50,92,.12)}
+a.card .top{display:flex;align-items:center;gap:10px}
+a.card .ic{font-size:1.8rem}
+a.card .ti{font-weight:700;font-size:1.08rem;color:var(--navy)}
+a.card .de{color:var(--muted);font-size:.95rem;flex:1}
+a.card .kl{display:flex;flex-wrap:wrap;gap:5px}
+a.card .kl span{background:#eef3fb;color:var(--navy);border-radius:12px;padding:2px 9px;font-size:.82rem;font-weight:700}
+a.card .go{align-self:flex-start;background:var(--blue);color:#fff;border-radius:9px;padding:7px 13px;font-weight:700;font-size:.92rem;margin-top:4px}
+.stat{color:var(--muted);font-size:.85rem;margin-top:18px}
+.box{background:#fff;border:2px solid var(--line);border-radius:12px;padding:14px;margin:10px 0}
+.box input{width:100%;font-size:1rem;padding:9px;border:2px solid var(--line);border-radius:8px;margin:6px 0}
+.err{color:var(--red);font-weight:600}
+.empty{color:var(--muted);padding:20px;text-align:center}
+</style>
+</head>
+<body>
+<header><div class="in"><h1>📚 Übungsseiten</h1><p>Alle Lern- und Übungsseiten auf einen Blick. <span class="en" style="color:#cfd8e6">(all practice pages)</span></p></div></header>
+<main>
+  <div class="warn"><b class="t">⚠️ Hinweis: Benutzung auf eigene Gefahr</b><br>
+  Diese Seiten wurden mit großer Sorgfalt erstellt. Trotzdem ist <b>nicht alles garantiert richtig</b>. Inhalte, Lösungen und Simulationen können <b>Fehler</b> enthalten.
+  Denke selbst mit, vergleiche mit deinem Heft und deinem Buch. Wenn dir etwas falsch vorkommt: Sag es deiner Lehrkraft!
+  <span class="en">(Use at your own risk. Not everything is correct – content may contain mistakes.)</span></div>
+
+  <div id="setup"></div>
+  <div class="bar"><input type="search" id="q" placeholder="🔍 Suchen …"><button class="btn" id="reload">🔄 Aktualisieren</button></div>
+  <div class="chips" id="chips"></div>
+  <div id="list"></div>
+  <div class="stat" id="stat"></div>
+</main>
+<script>
+/* ===================================================================
+   Übersicht aller Übungsseiten.
+   Die Liste kommt live aus dem Google Sheet (Blatt „Seiten“) über den
+   Fortschritt-Server:  GET <Web-App-URL>?action=seiten
+   Aufruf dieser Seite:  …/index.html?s=<SERVER-ID>
+   =================================================================== */
+const $ = s => document.querySelector(s);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const LS_ID = 'hub_server_id', LS_LIST = 'hub_list', LS_KL = 'hub_klasse';
+const HIDE = ['lk', 'test'];          // Lehrkräfte-/Testklassen: nicht anzeigen
+
+/* Kurzbeschreibungen der bekannten Seiten (Spalte E „Beschreibung“ im Sheet hat Vorrang) */
+const DESC = {
+  'physik7-elektrizitaet': 'Elektrizitätslehre: Atome und Ladung, Leiter, Stromkreis, Schaltungen, Spannung, Stromstärke, Widerstand, ohmsches Gesetz, Wirkungen. Mit Animationen, Tests und Puzzle.',
+  'physik9-induktion': 'Magnetfeld einer Spule, Graphen lesen und auswerten, elektromagnetische Induktion. Mit Simulationen.',
+  'physik9-motor-trafo': 'Generator, Elektromotor und Transformator: erst Theorie mit Simulationen, dann eigene Versuche mit Fotos.',
+  'physik12-franck-hertz-roentgen': 'Franck-Hertz-Versuch und Röntgenstrahlung (Bremsstrahlung, charakteristische Strahlung): Lesetexte, Simulationen, Vertiefung.',
+  'physik12-klausur-probeabitur': 'Training für Klausur und Probeabitur: Wiederholung der Themen des Semesters.',
+  'hebel-exp': 'Experiment: Das Hebelgesetz – messen, auswerten, verstehen.',
+  'k5-geometrie-ka': 'Fit für die Klassenarbeit Geometrie: Übungen zu allen Stationen und ein Geometrie-Test.',
+  'k6-dezimalzahlen': 'Rechnen mit Dezimalzahlen – von der Addition bis zur Division. Mit Heft-Einträgen, Fehlersuche und Tests.',
+  'ortslinien-7': 'Ortslinien: lernen und üben (Kreis, Mittelsenkrechte, Winkelhalbierende, Parallelen).',
+  'ortslinien-7-zeichnen': 'Ortslinien zeichnen: zuerst auf dem Tablet, dann sauber im Heft – mit Foto.',
+  'bruch-trainer': 'Bruch-Trainer: Rechnen mit Brüchen und Sterne sammeln.'
+};
+const fach = s => /physik|hebel|elektr|induktion|optik|mechanik/i.test(s.app + ' ' + s.titel) ? 'Physik' : /mathe|^k\d|bruch|geometrie|dezimal|ortslinie|zahl/i.test(s.app + ' ' + s.titel) ? 'Mathematik' : 'Weitere Seiten';
+const ICON = {Physik: '⚛️', Mathematik: '📐', 'Weitere Seiten': '📄'};
+
+function klassenOf(s){
+  const k = String(s.klassen || '').trim();
+  if(!k || k === '*') return ['*'];
+  return k.split(/[,;]/).map(x => x.trim()).filter(x => x && !HIDE.includes(x.toLowerCase()));
+}
+function serverId(){
+  const p = new URLSearchParams(location.search).get('s');
+  if(p){ try{ localStorage.setItem(LS_ID, p); }catch(e){} return p; }
+  try{ return localStorage.getItem(LS_ID) || ''; }catch(e){ return ''; }
+}
+let SID = serverId(), LIST = null, KL = '', Q = '';
+try{ KL = localStorage.getItem(LS_KL) || ''; LIST = JSON.parse(localStorage.getItem(LS_LIST) || 'null'); }catch(e){}
+
+function setup(msg){
+  $('#setup').innerHTML = `<div class="box"><b>Server-ID fehlt.</b> Öffne diese Seite mit <code>?s=DEINE-SERVER-ID</code> am Ende –
+    oder füge hier die Web-App-URL bzw. die ID ein (steht im Sheet unter „Einstellungen“, Zelle B2):
+    <input id="sidIn" placeholder="https://script.google.com/macros/s/…/exec"><button class="btn" id="sidOk">Speichern</button>${msg ? `<p class="err">${msg}</p>` : ''}</div>`;
+  $('#sidOk').onclick = () => { const v = $('#sidIn').value.trim(), m = v.match(/\/macros\/s\/([A-Za-z0-9_-]+)/); SID = m ? m[1] : v;
+    if(!/^[A-Za-z0-9_-]{10,}$/.test(SID)){ setup('Das sieht nicht wie eine Server-ID aus.'); return; }
+    try{ localStorage.setItem(LS_ID, SID); }catch(e){} $('#setup').innerHTML = ''; laden(); };
+}
+
+async function laden(){
+  if(!SID){ setup(); render(); return; }
+  $('#stat').textContent = '⏳ Lade die Liste …';
+  try{
+    const r = await fetch(`https://script.google.com/macros/s/${SID}/exec?action=seiten`, {cache: 'no-store'});
+    const d = await r.json();
+    if(!d.ok || !Array.isArray(d.seiten)) throw new Error(d.err || 'Antwort');
+    LIST = {t: Date.now(), seiten: d.seiten};
+    try{ localStorage.setItem(LS_LIST, JSON.stringify(LIST)); }catch(e){}
+    render();
+  }catch(e){
+    render();
+    $('#stat').innerHTML = `<span class="err">⚠️ Die Liste konnte nicht geladen werden${LIST ? ' – du siehst den letzten gespeicherten Stand' : ''}.</span> Prüfe die Internetverbindung und tippe auf 🔄.`;
+  }
+}
+
+function render(){
+  const all = (LIST && LIST.seiten || []).map(s => Object.assign({}, s, {kl: klassenOf(s)})).filter(s => s.kl.length);   // nur-Lehrkräfte-Seiten ausblenden
+  // Klassen-Chips
+  const ks = [...new Set(all.flatMap(s => s.kl).filter(k => k !== '*'))].sort((a, b) => a.localeCompare(b, 'de', {numeric: true}));
+  if(KL && !ks.includes(KL)) KL = '';
+  $('#chips').innerHTML = all.length ? `<button class="chip ${KL ? '' : 'on'}" data-k="">Alle Klassen</button>` + ks.map(k => `<button class="chip ${k === KL ? 'on' : ''}" data-k="${esc(k)}">Klasse ${esc(k)}</button>`).join('') : '';
+  document.querySelectorAll('.chip').forEach(b => b.onclick = () => { KL = b.dataset.k; try{ localStorage.setItem(LS_KL, KL); }catch(e){} render(); });
+  // Filter
+  const q = Q.toLowerCase();
+  const show = all.filter(s => (!KL || s.kl.includes('*') || s.kl.includes(KL)) &&
+    (!q || (s.titel + ' ' + (s.beschreibung || DESC[s.app] || '') + ' ' + s.kl.join(' ')).toLowerCase().includes(q)));
+  const groups = {};
+  show.forEach(s => (groups[fach(s)] = groups[fach(s)] || []).push(s));
+  const order = ['Mathematik', 'Physik', 'Weitere Seiten'];
+  $('#list').innerHTML = show.length ? order.filter(g => groups[g]).map(g => `<h2>${ICON[g]} ${g}</h2><div class="grid">${
+    groups[g].sort((a, b) => klSort(a).localeCompare(klSort(b), 'de', {numeric: true}) || a.titel.localeCompare(b.titel, 'de')).map(card).join('')}</div>`).join('')
+    : `<div class="empty">${LIST ? 'Keine Seite gefunden.' : 'Noch keine Liste geladen.'}</div>`;
+  $('#stat').textContent = LIST ? `${all.length} Seiten · Stand: ${new Date(LIST.t).toLocaleString('de-DE')}` : '';
+}
+const klSort = s => s.kl.includes('*') ? 'zz' : s.kl[0];
+function card(s){
+  const kl = s.kl.includes('*') ? '<span>alle Klassen</span>' : s.kl.map(k => `<span>Klasse ${esc(k)}</span>`).join('');
+  return `<a class="card" href="${esc(s.link)}" target="_blank" rel="noopener">
+    <div class="top"><span class="ic">${ICON[fach(s)]}</span><span class="ti">${esc(s.titel || s.app)}</span></div>
+    <div class="de">${esc(s.beschreibung || DESC[s.app] || 'Lern- und Übungsseite.')}</div>
+    <div class="kl">${kl}</div><span class="go">Öffnen ➜</span></a>`;
+}
+$('#q').oninput = e => { Q = e.target.value; render(); };
+$('#reload').onclick = laden;
+render(); laden();
+</script>
+</body>
+</html>
