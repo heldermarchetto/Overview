@@ -105,20 +105,41 @@ function setup(msg){
     try{ localStorage.setItem(LS_ID, SID); }catch(e){} $('#setup').innerHTML = ''; laden(); };
 }
 
+let INFO = '';   // Hinweis für die Lehrkraft (warum die Liste leer ist)
 async function laden(){
   if(!SID){ setup(); render(); return; }
   $('#stat').textContent = '⏳ Lade die Liste …';
+  const url = `https://script.google.com/macros/s/${SID}/exec?action=seiten&t=${Date.now()}`;
+  let txt = '', d = null;
   try{
-    const r = await fetch(`https://script.google.com/macros/s/${SID}/exec?action=seiten`, {cache: 'no-store'});
-    const d = await r.json();
-    if(!d.ok || !Array.isArray(d.seiten)) throw new Error(d.err || 'Antwort');
+    const r = await fetch(url, {cache: 'no-store', redirect: 'follow'});
+    txt = await r.text();
+  }catch(e){
+    INFO = '';
+    render();
+    $('#stat').innerHTML = `<span class="err">⚠️ Keine Verbindung zum Server${LIST ? ' – du siehst den letzten gespeicherten Stand' : ''}.</span> Prüfe die Internetverbindung und tippe auf 🔄.`;
+    return;
+  }
+  try{ d = JSON.parse(txt); }catch(e){ d = null; }
+  if(!d){
+    INFO = `Der Server antwortet nicht mit Daten (vermutlich eine Google-Anmeldeseite).
+      Prüfe in Apps Script unter <b>Bereitstellungen verwalten</b>: „Ausführen als: <b>Ich</b>“ und „Zugriff: <b>Jeder</b>“.
+      Prüfe auch die Server-ID: <code>${esc(SID)}</code>`;
+  }else if(!Array.isArray(d.seiten)){
+    INFO = d.err ? `Fehler im Server: <code>${esc(d.err)}</code>` :
+      `Der Server läuft, kennt aber die Seitenliste noch nicht. Bitte die neue <b>Code.gs</b> einfügen und dann
+      <b>Bereitstellen → Bereitstellungen verwalten → ✏️ Bearbeiten → Version: „Neue Version“ → Bereitstellen</b>.
+      (Nur Speichern reicht nicht – die Web-App benutzt sonst weiter die alte Version.)`;
+  }else{
     LIST = {t: Date.now(), seiten: d.seiten};
     try{ localStorage.setItem(LS_LIST, JSON.stringify(LIST)); }catch(e){}
-    render();
-  }catch(e){
-    render();
-    $('#stat').innerHTML = `<span class="err">⚠️ Die Liste konnte nicht geladen werden${LIST ? ' – du siehst den letzten gespeicherten Stand' : ''}.</span> Prüfe die Internetverbindung und tippe auf 🔄.`;
+    const ohne = d.ohneLink || [];
+    INFO = !d.seiten.length ? (ohne.length
+        ? `Im Blatt „Seiten“ stehen ${ohne.length} Seiten, aber <b>keine hat einen Link</b> in Spalte D (er muss mit https:// beginnen): ${ohne.map(esc).join(', ')}`
+        : 'Das Blatt „Seiten“ ist leer (ab Zeile 2: App-ID | Titel | Klassen | Link).')
+      : (ohne.length ? `Ohne Link (Spalte D) und daher nicht angezeigt: ${ohne.map(esc).join(', ')}` : '');
   }
+  render();
 }
 
 function render(){
@@ -137,8 +158,11 @@ function render(){
   const order = ['Mathematik', 'Physik', 'Weitere Seiten'];
   $('#list').innerHTML = show.length ? order.filter(g => groups[g]).map(g => `<h2>${ICON[g]} ${g}</h2><div class="grid">${
     groups[g].sort((a, b) => klSort(a).localeCompare(klSort(b), 'de', {numeric: true}) || a.titel.localeCompare(b.titel, 'de')).map(card).join('')}</div>`).join('')
-    : `<div class="empty">${LIST ? 'Keine Seite gefunden.' : 'Noch keine Liste geladen.'}</div>`;
-  $('#stat').textContent = LIST ? `${all.length} Seiten · Stand: ${new Date(LIST.t).toLocaleString('de-DE')}` : '';
+    : `<div class="empty">${!LIST ? 'Noch keine Liste geladen.' : (LIST.seiten.length && !all.length) ? 'Alle Seiten sind nur für „LK“ freigegeben – trage in Spalte C die Klassen ein (z. B. 7a, 7b).' : 'Keine Seite gefunden.'}</div>`;
+  $('#stat').innerHTML = (LIST ? `${all.length} Seiten · Stand: ${new Date(LIST.t).toLocaleString('de-DE')}` : '') +
+    (INFO ? `<div class="box" style="margin-top:10px"><b>ℹ️ Hinweis für die Lehrkraft:</b><br>${INFO}</div>` : '') +
+    (SID ? ` <a href="#" id="chgId" style="color:var(--muted)">Server-ID ändern</a>` : '');
+  const c = $('#chgId'); if(c) c.onclick = ev => { ev.preventDefault(); setup(); };
 }
 const klSort = s => s.kl.includes('*') ? 'zz' : s.kl[0];
 function card(s){
