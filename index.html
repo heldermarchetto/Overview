@@ -81,9 +81,30 @@ const DESC = {
   'k6-dezimalzahlen': 'Rechnen mit Dezimalzahlen – von der Addition bis zur Division. Mit Heft-Einträgen, Fehlersuche und Tests.',
   'ortslinien-7': 'Ortslinien: lernen und üben (Kreis, Mittelsenkrechte, Winkelhalbierende, Parallelen).',
   'ortslinien-7-zeichnen': 'Ortslinien zeichnen: zuerst auf dem Tablet, dann sauber im Heft – mit Foto.',
-  'bruch-trainer': 'Bruch-Trainer: Rechnen mit Brüchen und Sterne sammeln.'
+  'bruch-trainer': 'Bruch-Trainer: Rechnen mit Brüchen und Sterne sammeln.',
+  'rechentrainer': 'Schnell und richtig rechnen: natürliche Zahlen, Dezimalzahlen, Brüche, negative Zahlen, Prozent, Terme, Gleichungen, quadratische Ergänzung – mit Zeit und Verbesserung.',
+  'flaschenzug-ebene': 'Einfache Maschinen: Flaschenzug und schiefe Ebene – Theorie, eigene Messungen mit Tabelle und je ein Test.',
+  'kompetenzraster-geo-7': 'Kompetenzraster Geometrie Klasse 7: Winkel, Dreiecke konstruieren (SSS, SWS, WSW) und mehr.'
 };
-const fach = s => /physik|hebel|elektr|induktion|optik|mechanik/i.test(s.app + ' ' + s.titel) ? 'Physik' : /mathe|^k\d|bruch|geometrie|dezimal|ortslinie|zahl/i.test(s.app + ' ' + s.titel) ? 'Mathematik' : 'Weitere Seiten';
+/* Fach fest zuordnen (hat Vorrang vor der Erkennung über Stichwörter).
+   Noch einfacher: im Blatt „Seiten“ in Spalte G („Fach“) Mathematik oder Physik eintragen. */
+const FACH = {
+  'physik7-elektrizitaet':'Physik','physik9-induktion':'Physik','physik9-motor-trafo':'Physik','physik12-franck-hertz-roentgen':'Physik',
+  'physik12-klausur-probeabitur':'Physik','hebel-exp':'Physik','flaschenzug-exp':'Physik','flaschenzug-ebene':'Physik',
+  'k5-geometrie-ka':'Mathematik','k6-dezimalzahlen':'Mathematik','ortslinien-7':'Mathematik','ortslinien-7-zeichnen':'Mathematik',
+  'bruch-trainer':'Mathematik','rechentrainer':'Mathematik','kompetenzraster-geo-7':'Mathematik'
+};
+function fach(s){
+  const f = String(s.fach || '').trim().toLowerCase();                       // 1. Spalte G „Fach“ im Sheet
+  if(/^ma/.test(f)) return 'Mathematik';
+  if(/^ph/.test(f)) return 'Physik';
+  if(f) return 'Weitere Seiten';
+  if(FACH[s.app]) return FACH[s.app];                                         // 2. feste Zuordnung oben
+  const t = s.app + ' ' + s.titel;                                            // 3. Stichwörter
+  if(/physik|hebel|flaschenzug|maschine|schiefe ebene|elektr|induktion|optik|mechanik|kraft|energie|franck|r(ö|oe)ntgen|atom|welle|motor|trafo/i.test(t)) return 'Physik';
+  if(/mathe|^k\d|bruch|br(ü|ue)che|geometrie|geo-|dezimal|ortslinie|zahl|rechen|term|gleichung|prozent|funktion|dreieck|winkel|kompetenzraster|algebra/i.test(t)) return 'Mathematik';
+  return 'Weitere Seiten';
+}
 const ICON = {Physik: '⚛️', Mathematik: '📐', 'Weitere Seiten': '📄'};
 
 function klassenOf(s){
@@ -186,6 +207,7 @@ const BILDER = [
   [/bruch/i, SVG('<circle cx="32" cy="32" r="24"/><path d="M32 32V8A24 24 0 0 1 56 32z" fill="currentColor" opacity=".35"/><path d="M32 8v48M8 32h48"/>')],
   [/dezimal|komma/i, `<svg viewBox="0 0 64 64"><text x="32" y="42" text-anchor="middle" font-size="24" font-weight="800" fill="currentColor" font-family="Arial">3,14</text></svg>`],
   [/klausur|abitur|test|training|wiederhol/i, SVG('<rect x="14" y="6" width="36" height="52" rx="4"/><path d="M22 20l4 4 7-8M22 34l4 4 7-8M22 48l4 4 7-8M38 21h6M38 35h6M38 49h6"/>')],
+  [/flaschenzug|maschine|schiefe ebene/i, SVG('<path d="M6 56h52L58 22z" fill="currentColor" fill-opacity=".15"/><rect x="30" y="30" width="12" height="9" rx="2" transform="rotate(-32 36 34)"/><circle cx="14" cy="14" r="6"/><path d="M14 8V2M8 14v16M20 14v10"/>')],
   [/mathe|zahl|rechn/i, SVG('<path d="M16 14v16M8 22h16M40 22h16M10 44l12 12M22 44L10 56M40 46h16M40 54h16"/>')],
 ];
 const FALLBACK = SVG('<path d="M32 14C24 8 14 8 6 10v40c8-2 18-2 26 4c8-6 18-6 26-4V10c-8-2-18-2-26 4z"/><path d="M32 14v40"/>');
