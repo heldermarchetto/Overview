@@ -70,6 +70,10 @@ const LS_ID = 'hub_server_id', LS_LIST = 'hub_list', LS_KL = 'hub_klasse';
 const HIDE = ['lk', 'test'];          // Lehrkräfte-/Testklassen: nicht anzeigen
 
 /* Kurzbeschreibungen der bekannten Seiten (Spalte E „Beschreibung“ im Sheet hat Vorrang) */
+// Titel, die hier fest überschrieben werden (falls im Blatt „Seiten“ noch ein alter Titel steht)
+const TITEL = {
+  'rechentrainer': 'Rechentrainer (Klasse 5–9)'
+};
 const DESC = {
   'physik7-elektrizitaet': 'Elektrizitätslehre: Atome und Ladung, Leiter, Stromkreis, Schaltungen, Spannung, Stromstärke, Widerstand, ohmsches Gesetz, Wirkungen. Mit Animationen, Tests und Puzzle.',
   'physik9-induktion': 'Magnetfeld einer Spule, Graphen lesen und auswerten, elektromagnetische Induktion. Mit Simulationen.',
@@ -82,7 +86,7 @@ const DESC = {
   'ortslinien-7': 'Ortslinien: lernen und üben (Kreis, Mittelsenkrechte, Winkelhalbierende, Parallelen).',
   'ortslinien-7-zeichnen': 'Ortslinien zeichnen: zuerst auf dem Tablet, dann sauber im Heft – mit Foto.',
   'bruch-trainer': 'Bruch-Trainer: Rechnen mit Brüchen und Sterne sammeln.',
-  'rechentrainer': 'Klasse 5–9 · Schnell und richtig rechnen: Zahlen, Brüche, Prozent, Ergänzen, Wurzeln, Primfaktoren, ggT/kgV, Terme, Ausklammern, Potenzen, Gleichungen – mit Zeit und Verbesserung.',
+  'rechentrainer': 'Schnell und richtig rechnen: Zahlen, Brüche, Prozent, Ergänzen, Wurzeln, Primfaktoren, ggT/kgV, Terme, Ausklammern, Potenzen, Gleichungen – mit Zeit und Verbesserung.',
   'flaschenzug-ebene': 'Einfache Maschinen: Flaschenzug und schiefe Ebene – Theorie, eigene Messungen mit Tabelle und je ein Test.',
   'kompetenzraster-geo-7': 'Kompetenzraster Geometrie Klasse 7: Winkel, Dreiecke konstruieren (SSS, SWS, WSW) und mehr.'
 };
@@ -167,7 +171,7 @@ async function laden(){
 }
 
 function render(){
-  const all = (LIST && LIST.seiten || []).map(s => Object.assign({}, s, {kl: klassenOf(s)})).filter(s => s.kl.length);   // nur-Lehrkräfte-Seiten ausblenden
+  const all = (LIST && LIST.seiten || []).map(s => Object.assign({}, s, {kl: klassenOf(s)}, TITEL[s.app] ? {titel: TITEL[s.app]} : {})).filter(s => s.kl.length);   // nur-Lehrkräfte-Seiten ausblenden
   // Klassen-Chips
   const ks = [...new Set(all.flatMap(s => s.kl).filter(k => k !== '*'))].sort((a, b) => a.localeCompare(b, 'de', {numeric: true}));
   if(KL && !ks.includes(KL)) KL = '';
